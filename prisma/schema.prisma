@@ -1,0 +1,270 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+generator dbml {
+  provider = "prisma-dbml-generator"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  STUDENT
+}
+
+enum RecordStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  BLOCKED
+  ARCHIVED
+}
+
+enum Difficulty {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+}
+
+model User {
+  id            String         @id @default(cuid())
+  name          String
+  email         String         @unique
+  passwordHash  String
+  role          Role           @default(STUDENT)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  studySessions StudySession[]
+  goals         Goal[]
+  courses       LearningCourse[]
+  labs          LabEntry[]
+  certifications Certification[]
+  projects      Project[]
+  notes         KnowledgeNote[]
+  writeups      Writeup[]
+  siemEvents    SiemEvent[]
+  inventory     InventoryAsset[]
+  audits        AuditLog[]
+}
+
+model StudySession {
+  id         String   @id @default(cuid())
+  userId     String
+  startedAt  DateTime
+  endedAt    DateTime
+  focusArea  String
+  notes      String?
+  minutes    Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, startedAt])
+}
+
+model Goal {
+  id          String       @id @default(cuid())
+  userId      String
+  title       String
+  description String?
+  dueDate     DateTime?
+  status      RecordStatus @default(PLANNED)
+  progress    Int          @default(0)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+}
+
+model KnowledgeNote {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  category    String
+  tags        String[]
+  contentMd   String
+  links       String[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, category])
+}
+
+model LearningCourse {
+  id          String           @id @default(cuid())
+  userId      String
+  title       String
+  category    String
+  status      RecordStatus     @default(IN_PROGRESS)
+  score       Float?
+  progress    Int              @default(0)
+  minutes     Int              @default(0)
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  modules     LearningModule[]
+
+  @@index([userId, category])
+}
+
+model LearningModule {
+  id          String         @id @default(cuid())
+  courseId    String
+  title       String
+  order       Int
+  progress    Int            @default(0)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  course      LearningCourse @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons     LessonProgress[]
+
+  @@unique([courseId, order])
+}
+
+model LessonProgress {
+  id          String         @id @default(cuid())
+  moduleId    String
+  title       String
+  status      RecordStatus   @default(PLANNED)
+  score       Float?
+  date        DateTime?
+  minutes     Int            @default(0)
+  notes       String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  module      LearningModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+}
+
+model LabEntry {
+  id          String       @id @default(cuid())
+  userId      String
+  name        String
+  platform    String
+  category    String
+  difficulty  Difficulty
+  date        DateTime
+  status      RecordStatus @default(IN_PROGRESS)
+  notes       String?
+  evidenceUrl String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, platform])
+}
+
+model Writeup {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  category    String
+  contentMdx  String
+  tags        String[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, category])
+}
+
+model Certification {
+  id           String       @id @default(cuid())
+  userId       String
+  name         String
+  provider     String
+  status       RecordStatus @default(PLANNED)
+  progress     Int          @default(0)
+  examDate     DateTime?
+  evidenceUrl  String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, provider])
+}
+
+model Project {
+  id          String       @id @default(cuid())
+  userId      String
+  name        String
+  technologies String[]
+  status      RecordStatus @default(IN_PROGRESS)
+  priority    Int          @default(3)
+  startDate   DateTime?
+  dueDate     DateTime?
+  evidenceUrl String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+}
+
+model ToolkitReport {
+  id          String   @id @default(cuid())
+  toolName    String
+  input       String
+  output      String
+  createdAt   DateTime @default(now())
+}
+
+model SiemEvent {
+  id          String       @id @default(cuid())
+  userId      String
+  source      String
+  eventType   String
+  severity    Int
+  details     String
+  status      RecordStatus @default(PLANNED)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SiemRule {
+  id          String   @id @default(cuid())
+  name        String
+  condition   String
+  severity    Int
+  enabled     Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model InventoryAsset {
+  id            String   @id @default(cuid())
+  userId        String
+  name          String
+  type          String
+  ipAddress     String?
+  os            String?
+  topologyLabel String?
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  action      String
+  resource    String
+  resourceId  String?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+}

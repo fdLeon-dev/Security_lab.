@@ -1,0 +1,271 @@
+//// ------------------------------------------------------
+//// THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+//// ------------------------------------------------------
+
+Table User {
+  id String [pk]
+  name String [not null]
+  email String [unique, not null]
+  passwordHash String [not null]
+  role Role [not null, default: 'STUDENT']
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  studySessions StudySession [not null]
+  goals Goal [not null]
+  courses LearningCourse [not null]
+  labs LabEntry [not null]
+  certifications Certification [not null]
+  projects Project [not null]
+  notes KnowledgeNote [not null]
+  writeups Writeup [not null]
+  siemEvents SiemEvent [not null]
+  inventory InventoryAsset [not null]
+  audits AuditLog [not null]
+}
+
+Table StudySession {
+  id String [pk]
+  userId String [not null]
+  startedAt DateTime [not null]
+  endedAt DateTime [not null]
+  focusArea String [not null]
+  notes String
+  minutes Int [not null]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  user User [not null]
+}
+
+Table Goal {
+  id String [pk]
+  userId String [not null]
+  title String [not null]
+  description String
+  dueDate DateTime
+  status RecordStatus [not null, default: 'PLANNED']
+  progress Int [not null, default: 0]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  user User [not null]
+}
+
+Table KnowledgeNote {
+  id String [pk]
+  userId String [not null]
+  title String [not null]
+  category String [not null]
+  tags String[] [not null]
+  contentMd String [not null]
+  links String[] [not null]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  user User [not null]
+}
+
+Table LearningCourse {
+  id String [pk]
+  userId String [not null]
+  title String [not null]
+  category String [not null]
+  status RecordStatus [not null, default: 'IN_PROGRESS']
+  score Float
+  progress Int [not null, default: 0]
+  minutes Int [not null, default: 0]
+  startedAt DateTime
+  completedAt DateTime
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  user User [not null]
+  modules LearningModule [not null]
+}
+
+Table LearningModule {
+  id String [pk]
+  courseId String [not null]
+  title String [not null]
+  order Int [not null]
+  progress Int [not null, default: 0]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  course LearningCourse [not null]
+  lessons LessonProgress [not null]
+
+  indexes {
+    (courseId, order) [unique]
+  }
+}
+
+Table LessonProgress {
+  id String [pk]
+  moduleId String [not null]
+  title String [not null]
+  status RecordStatus [not null, default: 'PLANNED']
+  score Float
+  date DateTime
+  minutes Int [not null, default: 0]
+  notes String
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  module LearningModule [not null]
+}
+
+Table LabEntry {
+  id String [pk]
+  userId String [not null]
+  name String [not null]
+  platform String [not null]
+  category String [not null]
+  difficulty Difficulty [not null]
+  date DateTime [not null]
+  status RecordStatus [not null, default: 'IN_PROGRESS']
+  notes String
+  evidenceUrl String
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  user User [not null]
+}
+
+Table Writeup {
+  id String [pk]
+  userId String [not null]
+  title String [not null]
+  category String [not null]
+  contentMdx String [not null]
+  tags String[] [not null]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  user User [not null]
+}
+
+Table Certification {
+  id String [pk]
+  userId String [not null]
+  name String [not null]
+  provider String [not null]
+  status RecordStatus [not null, default: 'PLANNED']
+  progress Int [not null, default: 0]
+  examDate DateTime
+  evidenceUrl String
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  user User [not null]
+}
+
+Table Project {
+  id String [pk]
+  userId String [not null]
+  name String [not null]
+  technologies String[] [not null]
+  status RecordStatus [not null, default: 'IN_PROGRESS']
+  priority Int [not null, default: 3]
+  startDate DateTime
+  dueDate DateTime
+  evidenceUrl String
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  user User [not null]
+}
+
+Table ToolkitReport {
+  id String [pk]
+  toolName String [not null]
+  input String [not null]
+  output String [not null]
+  createdAt DateTime [default: `now()`, not null]
+}
+
+Table SiemEvent {
+  id String [pk]
+  userId String [not null]
+  source String [not null]
+  eventType String [not null]
+  severity Int [not null]
+  details String [not null]
+  status RecordStatus [not null, default: 'PLANNED']
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  user User [not null]
+}
+
+Table SiemRule {
+  id String [pk]
+  name String [not null]
+  condition String [not null]
+  severity Int [not null]
+  enabled Boolean [not null, default: true]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+}
+
+Table InventoryAsset {
+  id String [pk]
+  userId String [not null]
+  name String [not null]
+  type String [not null]
+  ipAddress String
+  os String
+  topologyLabel String
+  notes String
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  user User [not null]
+}
+
+Table AuditLog {
+  id String [pk]
+  userId String
+  action String [not null]
+  resource String [not null]
+  resourceId String
+  ipAddress String
+  userAgent String
+  createdAt DateTime [default: `now()`, not null]
+  user User
+}
+
+Enum Role {
+  OWNER
+  ADMIN
+  STUDENT
+}
+
+Enum RecordStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  BLOCKED
+  ARCHIVED
+}
+
+Enum Difficulty {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+}
+
+Ref: StudySession.userId > User.id [delete: Cascade]
+
+Ref: Goal.userId > User.id [delete: Cascade]
+
+Ref: KnowledgeNote.userId > User.id [delete: Cascade]
+
+Ref: LearningCourse.userId > User.id [delete: Cascade]
+
+Ref: LearningModule.courseId > LearningCourse.id [delete: Cascade]
+
+Ref: LessonProgress.moduleId > LearningModule.id [delete: Cascade]
+
+Ref: LabEntry.userId > User.id [delete: Cascade]
+
+Ref: Writeup.userId > User.id [delete: Cascade]
+
+Ref: Certification.userId > User.id [delete: Cascade]
+
+Ref: Project.userId > User.id [delete: Cascade]
+
+Ref: SiemEvent.userId > User.id [delete: Cascade]
+
+Ref: InventoryAsset.userId > User.id [delete: Cascade]
+
+Ref: AuditLog.userId > User.id [delete: Set Null]

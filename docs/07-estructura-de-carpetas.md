@@ -1,0 +1,43 @@
+# 07. Estructura de Carpetas
+
+```text
+src/
+  app/
+    (platform)/
+      dashboard/
+      knowledge/
+      learning/
+      labs/
+      writeups/
+      certifications/
+      projects/
+      toolkit/
+      siem/
+      inventory/
+    api/
+      auth/[...nextauth]/
+      dashboard/
+      knowledge/
+      labs/
+      siem/events/
+      toolkit/dns/
+  components/
+    dashboard/
+    layout/
+  lib/
+    auth.ts
+    prisma.ts
+    security.ts
+    utils.ts
+  server/
+    core/
+    modules/
+      dashboard/
+      knowledge/
+      labs/
+prisma/
+  schema.prisma
+  seed.ts
+docs/
+  01-...14
+```
