@@ -15,6 +15,7 @@
 - Testing
 - CI/CD
 - Fase 2.3: Certification Tracker y Analytics Dashboard
+- Fase 2.4: Home Lab Inventory
 
 ## Manual de instalacion
 1. npm ci

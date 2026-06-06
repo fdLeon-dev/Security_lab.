@@ -150,26 +150,128 @@ async function main() {
     skipDuplicates: true,
   });
 
-  await prisma.inventoryAsset.createMany({
-    data: [
-      {
-        userId: user.id,
-        name: "Proxmox Node",
-        type: "Servidor",
-        ipAddress: "192.168.1.20",
-        os: "Debian 12",
-        topologyLabel: "Core-Lab",
-      },
-      {
-        userId: user.id,
-        name: "Kali VM",
-        type: "Virtual Machine",
-        ipAddress: "192.168.1.55",
-        os: "Kali Linux",
-        topologyLabel: "SOC-VLAN",
-      },
-    ],
-    skipDuplicates: true,
+  const coreNetwork = await prisma.network.upsert({
+    where: { id: "seed-network-core" },
+    update: {
+      name: "Core-Lab",
+      subnet: "192.168.1.0/24",
+      gateway: "192.168.1.1",
+      notes: "Red principal del laboratorio para gestion de infraestructura.",
+    },
+    create: {
+      id: "seed-network-core",
+      userId: user.id,
+      name: "Core-Lab",
+      subnet: "192.168.1.0/24",
+      gateway: "192.168.1.1",
+      notes: "Red principal del laboratorio para gestion de infraestructura.",
+    },
+  });
+
+  const socNetwork = await prisma.network.upsert({
+    where: { id: "seed-network-soc" },
+    update: {
+      name: "SOC-VLAN",
+      subnet: "192.168.55.0/24",
+      gateway: "192.168.55.1",
+      notes: "Segmento aislado para monitoreo y pruebas defensivas.",
+    },
+    create: {
+      id: "seed-network-soc",
+      userId: user.id,
+      name: "SOC-VLAN",
+      subnet: "192.168.55.0/24",
+      gateway: "192.168.55.1",
+      notes: "Segmento aislado para monitoreo y pruebas defensivas.",
+    },
+  });
+
+  const proxmoxNode = await prisma.asset.upsert({
+    where: { id: "seed-asset-proxmox" },
+    update: {
+      name: "Proxmox Node",
+      type: "Servidor",
+      manufacturer: "Dell",
+      operatingSystem: "Debian 12",
+      ipAddress: "192.168.1.20",
+      notes: "Host principal para virtualizacion.",
+      networkId: coreNetwork.id,
+    },
+    create: {
+      id: "seed-asset-proxmox",
+      userId: user.id,
+      name: "Proxmox Node",
+      type: "Servidor",
+      manufacturer: "Dell",
+      operatingSystem: "Debian 12",
+      ipAddress: "192.168.1.20",
+      notes: "Host principal para virtualizacion.",
+      networkId: coreNetwork.id,
+    },
+  });
+
+  const kaliAsset = await prisma.asset.upsert({
+    where: { id: "seed-asset-kali" },
+    update: {
+      name: "Kali Workstation",
+      type: "Equipo",
+      manufacturer: "Lenovo",
+      operatingSystem: "Kali Linux",
+      ipAddress: "192.168.55.10",
+      notes: "Equipo ofensivo para ejercicios controlados.",
+      networkId: socNetwork.id,
+    },
+    create: {
+      id: "seed-asset-kali",
+      userId: user.id,
+      name: "Kali Workstation",
+      type: "Equipo",
+      manufacturer: "Lenovo",
+      operatingSystem: "Kali Linux",
+      ipAddress: "192.168.55.10",
+      notes: "Equipo ofensivo para ejercicios controlados.",
+      networkId: socNetwork.id,
+    },
+  });
+
+  await prisma.virtualMachine.upsert({
+    where: { id: "seed-vm-wazuh" },
+    update: {
+      name: "Wazuh Manager VM",
+      os: "Ubuntu Server 24.04",
+      resources: "4 vCPU, 8 GB RAM, 120 GB SSD",
+      hypervisor: "Proxmox",
+      assetId: proxmoxNode.id,
+      networkId: socNetwork.id,
+    },
+    create: {
+      id: "seed-vm-wazuh",
+      userId: user.id,
+      name: "Wazuh Manager VM",
+      os: "Ubuntu Server 24.04",
+      resources: "4 vCPU, 8 GB RAM, 120 GB SSD",
+      hypervisor: "Proxmox",
+      assetId: proxmoxNode.id,
+      networkId: socNetwork.id,
+    },
+  });
+
+  await prisma.service.upsert({
+    where: { id: "seed-service-ssh-kali" },
+    update: {
+      name: "OpenSSH",
+      protocol: "TCP",
+      port: 22,
+      assetId: kaliAsset.id,
+    },
+    create: {
+      id: "seed-service-ssh-kali",
+      userId: user.id,
+      name: "OpenSSH",
+      protocol: "TCP",
+      port: 22,
+      assetId: kaliAsset.id,
+    },
   });
 
   await prisma.siemRule.createMany({

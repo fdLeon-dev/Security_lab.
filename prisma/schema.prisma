@@ -64,6 +64,21 @@ enum WriteupVisibility {
   PUBLIC
 }
 
+enum SiemAlertStatus {
+  OPEN
+  ACKNOWLEDGED
+  CLOSED
+}
+
+enum SiemEventCategory {
+  AUTHENTICATION
+  NETWORK
+  SYSTEM
+  APPLICATION
+  ENDPOINT
+  AUDIT
+}
+
 model User {
   id            String         @id @default(cuid())
   name          String
@@ -81,7 +96,12 @@ model User {
   notes         KnowledgeNote[]
   writeups      Writeup[]
   siemEvents    SiemEvent[]
-  inventory     InventoryAsset[]
+  siemRules     SiemRule[]
+  siemAlerts    SiemAlert[]
+  assets        Asset[]
+  virtualMachines VirtualMachine[]
+  networks      Network[]
+  services      Service[]
   audits        AuditLog[]
 }
 
@@ -259,40 +279,128 @@ model ToolkitReport {
 }
 
 model SiemEvent {
-  id          String       @id @default(cuid())
+  id          String            @id @default(cuid())
   userId      String
   source      String
-  eventType   String
+  category    SiemEventCategory
   severity    Int
-  details     String
-  status      RecordStatus @default(PLANNED)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  timestamp   DateTime
+  description String
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  alerts      SiemAlert[]
+
+  @@index([userId, category])
+  @@index([userId, severity])
+  @@index([userId, timestamp])
 }
 
 model SiemRule {
-  id          String   @id @default(cuid())
+  id          String      @id @default(cuid())
+  userId      String
   name        String
   condition   String
   severity    Int
-  enabled     Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  enabled     Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  alerts      SiemAlert[]
+
+  @@index([userId, severity])
+  @@index([userId, enabled])
 }
 
-model InventoryAsset {
-  id            String   @id @default(cuid())
-  userId        String
-  name          String
-  type          String
-  ipAddress     String?
-  os            String?
-  topologyLabel String?
-  notes         String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+model SiemAlert {
+  id          String          @id @default(cuid())
+  userId      String
+  eventId     String
+  ruleId      String?
+  title       String
+  severity    Int
+  status      SiemAlertStatus @default(OPEN)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event       SiemEvent       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  rule        SiemRule?       @relation(fields: [ruleId], references: [id], onDelete: SetNull)
+
+  @@index([userId, status])
+  @@index([userId, severity])
+  @@index([eventId, status])
+}
+
+model Asset {
+  id               String           @id @default(cuid())
+  userId           String
+  networkId        String?
+  name             String
+  type             String
+  manufacturer     String?
+  operatingSystem  String?
+  ipAddress        String?
+  notes            String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  network          Network?         @relation(fields: [networkId], references: [id], onDelete: SetNull)
+  services         Service[]
+  virtualMachines  VirtualMachine[]
+
+  @@index([userId, type])
+  @@index([userId, networkId])
+}
+
+model VirtualMachine {
+  id          String    @id @default(cuid())
+  userId      String
+  assetId     String?
+  networkId   String?
+  name        String
+  os          String
+  resources   String
+  hypervisor  String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  asset       Asset?    @relation(fields: [assetId], references: [id], onDelete: SetNull)
+  network     Network?  @relation(fields: [networkId], references: [id], onDelete: SetNull)
+
+  @@index([userId, hypervisor])
+  @@index([userId, networkId])
+}
+
+model Network {
+  id               String           @id @default(cuid())
+  userId           String
+  name             String
+  subnet           String
+  gateway          String?
+  notes            String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assets           Asset[]
+  virtualMachines  VirtualMachine[]
+
+  @@index([userId, name])
+}
+
+model Service {
+  id          String    @id @default(cuid())
+  userId      String
+  assetId     String
+  name        String
+  protocol    String
+  port        Int
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  asset       Asset     @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([userId, protocol])
+  @@index([assetId, port])
 }
 
 model AuditLog {

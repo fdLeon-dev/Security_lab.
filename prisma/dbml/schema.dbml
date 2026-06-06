@@ -19,7 +19,12 @@ Table User {
   notes KnowledgeNote [not null]
   writeups Writeup [not null]
   siemEvents SiemEvent [not null]
-  inventory InventoryAsset [not null]
+  siemRules SiemRule [not null]
+  siemAlerts SiemAlert [not null]
+  assets Asset [not null]
+  virtualMachines VirtualMachine [not null]
+  networks Network [not null]
+  services Service [not null]
   audits AuditLog [not null]
 }
 
@@ -182,37 +187,120 @@ Table SiemEvent {
   id String [pk]
   userId String [not null]
   source String [not null]
-  eventType String [not null]
+  category SiemEventCategory [not null]
   severity Int [not null]
-  details String [not null]
-  status RecordStatus [not null, default: 'PLANNED']
+  timestamp DateTime [not null]
+  description String [not null]
   createdAt DateTime [default: `now()`, not null]
   updatedAt DateTime [not null]
   user User [not null]
+  alerts SiemAlert [not null]
+
+  indexes {
+    (userId, category)
+    (userId, severity)
+    (userId, timestamp)
+  }
 }
 
 Table SiemRule {
   id String [pk]
+  userId String [not null]
   name String [not null]
   condition String [not null]
   severity Int [not null]
   enabled Boolean [not null, default: true]
   createdAt DateTime [default: `now()`, not null]
   updatedAt DateTime [not null]
+  user User [not null]
+  alerts SiemAlert [not null]
+
+  indexes {
+    (userId, severity)
+    (userId, enabled)
+  }
 }
 
-Table InventoryAsset {
+Table SiemAlert {
   id String [pk]
   userId String [not null]
+  eventId String [not null]
+  ruleId String
+  title String [not null]
+  severity Int [not null]
+  status SiemAlertStatus [not null, default: 'OPEN']
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  user User [not null]
+  event SiemEvent [not null]
+  rule SiemRule
+
+  indexes {
+    (userId, status)
+    (userId, severity)
+    (eventId, status)
+  }
+}
+
+Table Asset {
+  id String [pk]
+  userId String [not null]
+  networkId String
   name String [not null]
   type String [not null]
+  manufacturer String
+  operatingSystem String
   ipAddress String
-  os String
-  topologyLabel String
   notes String
   createdAt DateTime [default: `now()`, not null]
   updatedAt DateTime [not null]
   user User [not null]
+  network Network
+  services Service [not null]
+  virtualMachines VirtualMachine [not null]
+}
+
+Table VirtualMachine {
+  id String [pk]
+  userId String [not null]
+  assetId String
+  networkId String
+  name String [not null]
+  os String [not null]
+  resources String [not null]
+  hypervisor String [not null]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  user User [not null]
+  asset Asset
+  network Network
+}
+
+Table Network {
+  id String [pk]
+  userId String [not null]
+  name String [not null]
+  subnet String [not null]
+  gateway String
+  notes String
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  user User [not null]
+  assets Asset [not null]
+  virtualMachines VirtualMachine [not null]
+}
+
+Table Service {
+  id String [pk]
+  userId String [not null]
+  assetId String [not null]
+  name String [not null]
+  protocol String [not null]
+  port Int [not null]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  user User [not null]
+  asset Asset [not null]
 }
 
 Table AuditLog {
@@ -280,6 +368,21 @@ Enum WriteupVisibility {
   PUBLIC
 }
 
+Enum SiemAlertStatus {
+  OPEN
+  ACKNOWLEDGED
+  CLOSED
+}
+
+Enum SiemEventCategory {
+  AUTHENTICATION
+  NETWORK
+  SYSTEM
+  APPLICATION
+  ENDPOINT
+  AUDIT
+}
+
 Ref: StudySession.userId > User.id [delete: Cascade]
 
 Ref: Goal.userId > User.id [delete: Cascade]
@@ -302,6 +405,28 @@ Ref: Project.userId > User.id [delete: Cascade]
 
 Ref: SiemEvent.userId > User.id [delete: Cascade]
 
-Ref: InventoryAsset.userId > User.id [delete: Cascade]
+Ref: SiemRule.userId > User.id [delete: Cascade]
+
+Ref: SiemAlert.userId > User.id [delete: Cascade]
+
+Ref: SiemAlert.eventId > SiemEvent.id [delete: Cascade]
+
+Ref: SiemAlert.ruleId > SiemRule.id [delete: Set Null]
+
+Ref: Asset.userId > User.id [delete: Cascade]
+
+Ref: Asset.networkId > Network.id [delete: Set Null]
+
+Ref: VirtualMachine.userId > User.id [delete: Cascade]
+
+Ref: VirtualMachine.assetId > Asset.id [delete: Set Null]
+
+Ref: VirtualMachine.networkId > Network.id [delete: Set Null]
+
+Ref: Network.userId > User.id [delete: Cascade]
+
+Ref: Service.userId > User.id [delete: Cascade]
+
+Ref: Service.assetId > Asset.id [delete: Cascade]
 
 Ref: AuditLog.userId > User.id [delete: Set Null]
