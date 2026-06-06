@@ -1,4 +1,13 @@
-import { PrismaClient, RecordStatus, Role, Difficulty } from "@prisma/client";
+import {
+  PrismaClient,
+  RecordStatus,
+  Role,
+  Difficulty,
+  LabCategory,
+  LabPlatform,
+  WriteupCategory,
+  WriteupVisibility,
+} from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
@@ -42,14 +51,21 @@ async function main() {
         name: "CompTIA Security+",
         provider: "CompTIA",
         status: RecordStatus.IN_PROGRESS,
+        startDate: new Date("2026-03-01T00:00:00.000Z"),
+        targetDate: new Date("2026-09-15T00:00:00.000Z"),
         progress: 45,
+        notes: "Plan semanal de dominios y simulacros.",
+        evidenceUrl: "https://example.com/evidence/security-plus-plan",
       },
       {
         userId: user.id,
         name: "eJPT",
         provider: "INE",
         status: RecordStatus.PLANNED,
+        startDate: new Date("2026-07-01T00:00:00.000Z"),
+        targetDate: new Date("2026-12-10T00:00:00.000Z"),
         progress: 10,
+        notes: "Preparar networking, web y labs previos.",
       },
     ],
     skipDuplicates: true,
@@ -85,24 +101,39 @@ async function main() {
     data: [
       {
         userId: user.id,
-        name: "Blue",
-        platform: "Hack The Box",
-        category: "Windows",
+        title: "Blue",
+        platform: LabPlatform.HACK_THE_BOX,
+        category: LabCategory.WINDOWS,
         difficulty: Difficulty.INTERMEDIATE,
-        date: new Date(),
         status: RecordStatus.COMPLETED,
+        completedAt: new Date(),
+        notes: "Enumeracion SMB y escalada de privilegios en entorno Windows.",
       },
       {
         userId: user.id,
-        name: "SOC Level 1",
-        platform: "TryHackMe",
-        category: "SIEM",
+        title: "SOC Level 1",
+        platform: LabPlatform.TRY_HACK_ME,
+        category: LabCategory.NETWORK,
         difficulty: Difficulty.BEGINNER,
-        date: new Date(),
         status: RecordStatus.IN_PROGRESS,
+        notes: "Escenario orientado a monitoreo y analisis defensivo.",
       },
     ],
     skipDuplicates: true,
+  });
+
+  await prisma.writeup.upsert({
+    where: { slug: "blue-windows-writeup" },
+    update: {},
+    create: {
+      userId: user.id,
+      title: "Blue Windows Writeup",
+      slug: "blue-windows-writeup",
+      content: "# Blue\n\n## Resumen\n\nLaboratorio orientado a Windows con foco en SMB, enumeracion y escalada.\n\n```powershell\nGet-SmbShare\n```\n\n![Arquitectura](https://images.unsplash.com/photo-1516321318423-f06f85e504b3)",
+      tags: ["windows", "smb", "htb"],
+      category: WriteupCategory.WINDOWS,
+      visibility: WriteupVisibility.PRIVATE,
+    },
   });
 
   await prisma.knowledgeNote.createMany({

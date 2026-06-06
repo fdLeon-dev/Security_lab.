@@ -14,6 +14,7 @@
 - Docker
 - Testing
 - CI/CD
+- Fase 2.3: Certification Tracker y Analytics Dashboard
 
 ## Manual de instalacion
 1. npm ci
