@@ -1,25 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
-import { SiemEventCategory } from "@prisma/client";
+import { SiemAlertStatus } from "@prisma/client";
 import { z } from "zod";
 import { getDefaultUserId } from "@/server/core/default-user";
-import { createSiemEvent, listSiemEvents } from "@/server/modules/siem/siem.service";
+import { createSiemAlert, listSiemAlerts } from "@/server/modules/siem/siem.service";
 
 const listSchema = z.object({
   search: z.string().optional(),
-  category: z.nativeEnum(SiemEventCategory).optional(),
+  status: z.nativeEnum(SiemAlertStatus).optional(),
   severity: z.coerce.number().int().min(1).max(10).optional(),
-  sortBy: z.enum(["timestamp", "createdAt", "updatedAt", "severity"]).optional(),
+  sortBy: z.enum(["createdAt", "updatedAt", "severity", "title"]).optional(),
   sortOrder: z.enum(["asc", "desc"]).optional(),
   page: z.coerce.number().int().min(1).optional(),
   pageSize: z.coerce.number().int().min(5).max(50).optional(),
 });
 
 const inputSchema = z.object({
-  source: z.string().min(2).max(120),
-  category: z.nativeEnum(SiemEventCategory),
+  title: z.string().min(3).max(160),
   severity: z.number().int().min(1).max(10),
-  timestamp: z.string().datetime(),
-  description: z.string().min(5).max(5000),
+  status: z.nativeEnum(SiemAlertStatus).optional(),
+  eventId: z.string().min(5),
+  ruleId: z.string().nullable().optional(),
 });
 
 export async function GET(request: NextRequest) {
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     const userId = await getDefaultUserId();
     const filters = listSchema.parse({
       search: request.nextUrl.searchParams.get("search") ?? undefined,
-      category: request.nextUrl.searchParams.get("category") ?? undefined,
+      status: request.nextUrl.searchParams.get("status") ?? undefined,
       severity: request.nextUrl.searchParams.get("severity") ?? undefined,
       sortBy: request.nextUrl.searchParams.get("sortBy") ?? undefined,
       sortOrder: request.nextUrl.searchParams.get("sortOrder") ?? undefined,
@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
       pageSize: request.nextUrl.searchParams.get("pageSize") ?? undefined,
     });
 
-    const data = await listSiemEvents(userId, filters);
+    const data = await listSiemAlerts(userId, filters);
     return NextResponse.json(data);
   } catch {
     return NextResponse.json({ entries: [], total: 0, page: 1, pageSize: 10, totalPages: 1 });
@@ -46,13 +46,13 @@ export async function POST(request: NextRequest) {
   try {
     const userId = await getDefaultUserId();
     const payload = inputSchema.parse(await request.json());
-    const event = await createSiemEvent(userId, {
+    const alert = await createSiemAlert(userId, {
       ...payload,
-      timestamp: new Date(payload.timestamp),
+      ruleId: payload.ruleId ?? null,
     });
 
-    return NextResponse.json(event, { status: 201 });
+    return NextResponse.json(alert, { status: 201 });
   } catch {
-    return NextResponse.json({ error: "Invalid SIEM event payload" }, { status: 400 });
+    return NextResponse.json({ error: "Invalid SIEM alert payload" }, { status: 400 });
   }
 }

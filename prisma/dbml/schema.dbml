@@ -195,12 +195,6 @@ Table SiemEvent {
   updatedAt DateTime [not null]
   user User [not null]
   alerts SiemAlert [not null]
-
-  indexes {
-    (userId, category)
-    (userId, severity)
-    (userId, timestamp)
-  }
 }
 
 Table SiemRule {
@@ -214,11 +208,6 @@ Table SiemRule {
   updatedAt DateTime [not null]
   user User [not null]
   alerts SiemAlert [not null]
-
-  indexes {
-    (userId, severity)
-    (userId, enabled)
-  }
 }
 
 Table SiemAlert {
@@ -234,12 +223,6 @@ Table SiemAlert {
   user User [not null]
   event SiemEvent [not null]
   rule SiemRule
-
-  indexes {
-    (userId, status)
-    (userId, severity)
-    (eventId, status)
-  }
 }
 
 Table Asset {

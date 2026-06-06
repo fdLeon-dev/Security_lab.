@@ -7,6 +7,8 @@ import {
   LabPlatform,
   WriteupCategory,
   WriteupVisibility,
+  SiemAlertStatus,
+  SiemEventCategory,
 } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
@@ -274,20 +276,102 @@ async function main() {
     },
   });
 
-  await prisma.siemRule.createMany({
-    data: [
-      {
-        name: "Múltiples fallos de login",
-        condition: "failed_logins > 5 in 5m",
-        severity: 6,
-      },
-      {
-        name: "PowerShell sospechoso",
-        condition: "process_name=powershell AND encoded_command=true",
-        severity: 8,
-      },
-    ],
-    skipDuplicates: true,
+  const siemRule = await prisma.siemRule.upsert({
+    where: { id: "seed-siem-rule-auth" },
+    update: {
+      name: "Múltiples intentos de autenticación",
+      condition: "auth_failure_count >= 5 en una ventana de 5m",
+      severity: 6,
+      enabled: true,
+    },
+    create: {
+      id: "seed-siem-rule-auth",
+      userId: user.id,
+      name: "Múltiples intentos de autenticación",
+      condition: "auth_failure_count >= 5 en una ventana de 5m",
+      severity: 6,
+      enabled: true,
+    },
+  });
+
+  const authEvent = await prisma.siemEvent.upsert({
+    where: { id: "seed-siem-event-auth" },
+    update: {
+      source: "Lab Gateway",
+      category: SiemEventCategory.AUTHENTICATION,
+      severity: 5,
+      timestamp: new Date("2026-06-05T21:00:00.000Z"),
+      description: "Serie de inicios de sesión fallidos en el laboratorio académico.",
+    },
+    create: {
+      id: "seed-siem-event-auth",
+      userId: user.id,
+      source: "Lab Gateway",
+      category: SiemEventCategory.AUTHENTICATION,
+      severity: 5,
+      timestamp: new Date("2026-06-05T21:00:00.000Z"),
+      description: "Serie de inicios de sesión fallidos en el laboratorio académico.",
+    },
+  });
+
+  const networkEvent = await prisma.siemEvent.upsert({
+    where: { id: "seed-siem-event-net" },
+    update: {
+      source: "Core Switch",
+      category: SiemEventCategory.NETWORK,
+      severity: 4,
+      timestamp: new Date("2026-06-05T22:10:00.000Z"),
+      description: "Pico de actividad de red observado en un segmento aislado.",
+    },
+    create: {
+      id: "seed-siem-event-net",
+      userId: user.id,
+      source: "Core Switch",
+      category: SiemEventCategory.NETWORK,
+      severity: 4,
+      timestamp: new Date("2026-06-05T22:10:00.000Z"),
+      description: "Pico de actividad de red observado en un segmento aislado.",
+    },
+  });
+
+  await prisma.siemAlert.upsert({
+    where: { id: "seed-siem-alert-auth" },
+    update: {
+      title: "Revisión académica: múltiples intentos de autenticación",
+      severity: 6,
+      status: SiemAlertStatus.OPEN,
+      eventId: authEvent.id,
+      ruleId: siemRule.id,
+    },
+    create: {
+      id: "seed-siem-alert-auth" ,
+      userId: user.id,
+      eventId: authEvent.id,
+      ruleId: siemRule.id,
+      title: "Revisión académica: múltiples intentos de autenticación",
+      severity: 6,
+      status: SiemAlertStatus.OPEN,
+    },
+  });
+
+  await prisma.siemAlert.upsert({
+    where: { id: "seed-siem-alert-net" },
+    update: {
+      title: "Observación de actividad de red",
+      severity: 4,
+      status: SiemAlertStatus.ACKNOWLEDGED,
+      eventId: networkEvent.id,
+      ruleId: null,
+    },
+    create: {
+      id: "seed-siem-alert-net",
+      userId: user.id,
+      eventId: networkEvent.id,
+      ruleId: null,
+      title: "Observación de actividad de red",
+      severity: 4,
+      status: SiemAlertStatus.ACKNOWLEDGED,
+    },
   });
 }
 
