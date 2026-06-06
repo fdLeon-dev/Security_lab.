@@ -2,6 +2,15 @@ import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { writeAuditLog } from "@/server/modules/audit/audit.service";
+
+async function safeAuditLog(input: Parameters<typeof writeAuditLog>[0]) {
+  try {
+    await writeAuditLog(input);
+  } catch {
+    // Audit should never block authentication flow
+  }
+}
 
 export const authOptions: NextAuthOptions = {
   session: {
@@ -19,6 +28,11 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials.password) {
+          await safeAuditLog({
+            action: "SIGNIN_FAILED",
+            resource: "auth",
+            resourceId: null,
+          });
           return null;
         }
 
@@ -27,13 +41,29 @@ export const authOptions: NextAuthOptions = {
         });
 
         if (!user) {
+          await safeAuditLog({
+            action: "SIGNIN_FAILED",
+            resource: "auth",
+            resourceId: credentials.email,
+          });
           return null;
         }
 
         const isValid = await bcrypt.compare(credentials.password, user.passwordHash);
         if (!isValid) {
+          await safeAuditLog({
+            action: "SIGNIN_FAILED",
+            resource: "auth",
+            userId: user.id,
+          });
           return null;
         }
+
+        await safeAuditLog({
+          action: "SIGNIN_SUCCESS",
+          resource: "auth",
+          userId: user.id,
+        });
 
         return {
           id: user.id,
@@ -58,6 +88,15 @@ export const authOptions: NextAuthOptions = {
         session.user.role = token.role;
       }
       return session;
+    },
+  },
+  events: {
+    async signOut(message) {
+      await safeAuditLog({
+        action: "SIGNOUT",
+        resource: "auth",
+        userId: typeof message.token?.userId === "string" ? message.token.userId : null,
+      });
     },
   },
 };

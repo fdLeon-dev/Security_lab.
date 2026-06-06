@@ -18,6 +18,12 @@
 - Fase 2.4: Home Lab Inventory
 - Fase 3: SIEM Academico
 - Fase 4: Toolkit Académico Defensivo
+- Fase 5: Preparación para Producción (Portafolio + DevSecOps)
+- Manual técnico de producción
+- Manual de usuario
+- Arquitectura de producción
+- Roadmap V2.0+
+- Release Report V2.0
 
 ## Manual de instalacion
 1. npm ci
